@@ -1,0 +1,10 @@
+hosts:
+  - google.com
+  - amazon.com
+keys:
+  - name: johndoe@gmail.com
+    description: John Doe
+    key: ssh-rsa XXXXXXXXX
+  - name: janedoe@gmail.com
+    description: Jane Doe
+    key: ssh-rsa YYYYYYYYY
