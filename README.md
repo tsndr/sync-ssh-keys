@@ -1,4 +1,5 @@
 # Sync SSH Keys
+A simple script to sync ssh public keys to multiple servers, without the danger of locking yourself out (since it writes to `authorized_keys2`)
 
 ## Setup
 
