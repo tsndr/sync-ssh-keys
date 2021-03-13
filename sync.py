@@ -4,19 +4,19 @@ import paramiko
 import threading
 import yaml
 
-class taskThread(threading.Thread):
+class task_thread(threading.Thread):
    def __init__(self, host, keys):
       threading.Thread.__init__(self)
       self.host = host
       self.keys = keys
    def run(self):
-      updateKeys(self.host, self.keys)
+      update_keys(self.host, self.keys)
 
-def readConfig():
+def read_config():
     with open('config.yaml', 'r') as stream:
         return yaml.safe_load(stream)
 
-def updateKeys(host, keys):
+def update_keys(host, keys):
     try:
         client = paramiko.SSHClient()
         client.set_missing_host_key_policy(paramiko.MissingHostKeyPolicy())
@@ -28,7 +28,7 @@ def updateKeys(host, keys):
         print('❌ ' + host)
 
 def main():
-    config = readConfig()
+    config = read_config()
 
     keys = []
 
@@ -37,7 +37,7 @@ def main():
 
     for host in config['hosts']:
         try:
-            thread = taskThread(host, keys)
+            thread = task_thread(host, keys)
             thread.start()
         except:
             print('❌ ' + host)
