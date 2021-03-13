@@ -5,40 +5,45 @@ import threading
 import yaml
 
 class task_thread(threading.Thread):
-   def __init__(self, host, keys):
+   def __init__(self, host, keys, host_length):
       threading.Thread.__init__(self)
       self.host = host
       self.keys = keys
+      self.host_length = host_length
    def run(self):
-      update_keys(self.host, self.keys)
+      update_keys(self.host, self.keys, self.host_length)
 
 def read_config():
     with open('config.yaml', 'r') as stream:
         return yaml.safe_load(stream)
 
-def update_keys(host, keys):
+def update_keys(host, keys, host_length):
     try:
         client = paramiko.SSHClient()
         client.set_missing_host_key_policy(paramiko.MissingHostKeyPolicy())
         client.connect(host, username = 'root')
         stdin, stdout, stderr = client.exec_command('uptime')
         stdin.close()
-        print('✅ ' + host + ': ' + stdout.read().decode('utf-8').strip().split('load average: ', 2)[1])
+        print(('✅ ' + host + ': ').ljust(host_length + 5) + stdout.read().decode('utf-8').strip().split('load average: ', 2)[1])
         client.close()
-    except Exception:
+    except:
         print('❌ ' + host)
 
 def main():
     config = read_config()
 
-    keys = []
+    host_length = 0
+    for host in config['hosts']:
+        if len(host) > host_length:
+            host_length = len(host)
 
+    keys = []
     for key in config['keys']:
         keys.append(key['key'])
 
     for host in config['hosts']:
         try:
-            thread = task_thread(host, keys)
+            thread = task_thread(host, keys, host_length)
             thread.start()
         except:
             print('❌ ' + host)
