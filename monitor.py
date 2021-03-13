@@ -75,7 +75,7 @@ def main():
     for key in config['keys']:
         keys.append(key['key'])
 
-    print('Host'.center(host_length + 5) + ' ' + 'Load'.center(25) + '   ' + 'Ram Usage'.center(17))
+    print('Host'.center(host_length + 3) + '   ' + 'Load'.center(25) + '   ' + 'Ram Usage'.center(17))
 
     for host in config['hosts']:
         try:
