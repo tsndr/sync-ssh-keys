@@ -33,10 +33,14 @@ def parse_top_string(data):
     ram_unit, ram_data = rows[2].split(':', 2)
     ram_factor = 1
     if ram_unit[0] == 'K':
+        ram_factor = 1024 * 1024
+    elif ram_unit[0] == 'M':
         ram_factor = 1024
+    elif ram_unit[0] == 'G':
+        ram_factor = 1
     ram_data = ram_data.strip().split(',')
-    ram_total = float(ram_data[0].strip().split(' ', 2)[0].strip()) / ram_factor / 1024
-    ram_free = float(ram_data[1].strip().split(' ', 2)[0].strip()) / ram_factor / 1024
+    ram_total = float(ram_data[0].strip().split(' ', 2)[0].strip()) / ram_factor
+    ram_free = float(ram_data[1].strip().split(' ', 2)[0].strip()) / ram_factor
 
     return load, cpu_percent, ram_total, ram_free
 
