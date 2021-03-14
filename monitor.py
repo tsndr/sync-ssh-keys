@@ -57,8 +57,9 @@ def update_keys(host, keys, host_length):
         client.close()
 
         load, cpu_percent, ram_total, ram_free = parse_top_string(data)
+        ram_used = ram_total - ram_free
         
-        print(('✅ ' + host).ljust(host_length + 5) + load + ' (' + '{:3.1f}'.format(cpu_percent).rjust(5) + '%)   ' + '{:3.1f}'.format(ram_total - ram_free).rjust(5) + ' / ' + '{:3.1f}'.format(ram_total).rjust(5) + ' GiB (' + '{:3.1f}'.format((ram_total - ram_free) / ram_total * 100).rjust(5) + '%)')
+        print(('✅ ' + host).ljust(host_length + 5) + load + ' (' + '{:3.1f}'.format(cpu_percent).rjust(5) + '%)   ' + '{:3.1f}'.format(ram_used).rjust(5) + ' / ' + '{:3.1f}'.format(ram_total).rjust(5) + ' GiB (' + '{:3.1f}'.format(ram_used / ram_total * 100).rjust(5) + '%)')
 
     except:
         print('❌ ' + host)
