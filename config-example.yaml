@@ -1,6 +1,11 @@
 hosts:
-  - google.com
-  - amazon.com
+  - host: google.com
+    users:
+      - root
+      - admin
+  - host: amazon.com
+    users:
+      - root
 keys:
   - name: johndoe@gmail.com
     description: John Doe

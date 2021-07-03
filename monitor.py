@@ -5,13 +5,14 @@ import threading
 import yaml
 
 class task_thread(threading.Thread):
-   def __init__(self, host, keys, host_length):
+   def __init__(self, host, user, keys, host_length):
       threading.Thread.__init__(self)
       self.host = host
+      self.user = user
       self.keys = keys
       self.host_length = host_length
    def run(self):
-      update_keys(self.host, self.keys, self.host_length)
+      update_keys(self.host, self.user, self.keys, self.host_length)
 
 def read_config():
     with open('config.yaml', 'r') as stream:
@@ -44,11 +45,11 @@ def parse_top_string(data):
 
     return load, cpu_percent, ram_total, ram_free
 
-def update_keys(host, keys, host_length):
+def update_keys(host, user, keys, host_length):
     try:
         client = paramiko.SSHClient()
         client.set_missing_host_key_policy(paramiko.MissingHostKeyPolicy())
-        client.connect(host, username = 'root')
+        client.connect(host, username = user)
 
         stdin, stdout, stderr = client.exec_command('top -bn1 | grep "^top\\|^%Cpu\\|^.iB Mem"')
         stdin.close()
@@ -59,18 +60,19 @@ def update_keys(host, keys, host_length):
         load, cpu_percent, ram_total, ram_free = parse_top_string(data)
         ram_used = ram_total - ram_free
         
-        print(('✅ ' + host).ljust(host_length + 5) + load + ' (' + '{:3.1f}'.format(cpu_percent).rjust(5) + '%)   ' + '{:3.1f}'.format(ram_used).rjust(5) + ' / ' + '{:3.1f}'.format(ram_total).rjust(5) + ' GiB (' + '{:3.1f}'.format(ram_used / ram_total * 100).rjust(5) + '%)')
+        print(('✅ ' + user + '@' + host).ljust(host_length + 5) + load + ' (' + '{:3.1f}'.format(cpu_percent).rjust(5) + '%)   ' + '{:3.1f}'.format(ram_used).rjust(5) + ' / ' + '{:3.1f}'.format(ram_total).rjust(5) + ' GiB (' + '{:3.1f}'.format(ram_used / ram_total * 100).rjust(5) + '%)')
 
     except:
-        print('❌ ' + host)
+        print('❌ ' + user + '@' + host)
 
 def main():
     config = read_config()
 
     host_length = 0
     for host in config['hosts']:
-        if len(host) > host_length:
-            host_length = len(host)
+        for user in host['users']:
+            if len(user) + len(host['host']) > host_length:
+                host_length = len(user) + len(host['host'])
 
     keys = []
     for key in config['keys']:
@@ -79,11 +81,12 @@ def main():
     print('Host'.center(host_length + 3) + '   ' + 'Load'.center(25) + '   ' + 'Ram Usage'.center(26))
 
     for host in config['hosts']:
-        try:
-            thread = task_thread(host, keys, host_length)
-            thread.start()
-        except:
-            print('❌ ' + host)
+        for user in host['users']:
+            try:
+                thread = task_thread(host['host'], user, keys, host_length)
+                thread.start()
+            except:
+                print('❌ ' + user + '@' + host['host'])
 
 if __name__ == '__main__':
     main()
