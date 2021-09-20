@@ -21,7 +21,7 @@ def update_keys(host, user, keys):
     try:
         client = paramiko.SSHClient()
         client.set_missing_host_key_policy(paramiko.MissingHostKeyPolicy())
-        client.connect(host, username = user)
+        client.connect(host, username = user, timeout = 1)
         client.exec_command('echo "###\n# Warning this file has been generated and will be overwritten!\n###\n\n' + '\n'.join(keys) + '" > ~/.ssh/authorized_keys2')
         client.close()
         print('✅ ' + user + '@' + host)
@@ -37,6 +37,8 @@ def main():
         keys.append(key['key'])
 
     for host in config['hosts']:
+        if host.get('users') == None:
+            host['users'] = ['root']
         for user in host['users']:
             try:
                 thread = task_thread(host['host'], user, keys)

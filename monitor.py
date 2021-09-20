@@ -49,7 +49,7 @@ def update_keys(host, user, keys, host_length):
     try:
         client = paramiko.SSHClient()
         client.set_missing_host_key_policy(paramiko.MissingHostKeyPolicy())
-        client.connect(host, username = user)
+        client.connect(host, username = user, timeout = 1)
 
         stdin, stdout, stderr = client.exec_command('top -bn1 | grep "^top\\|^%Cpu\\|^.iB Mem"')
         stdin.close()
@@ -70,6 +70,8 @@ def main():
 
     host_length = 0
     for host in config['hosts']:
+        if host.get('users') == None:
+            host['users'] = ['root']
         for user in host['users']:
             if len(user) + len(host['host']) > host_length:
                 host_length = len(user) + len(host['host'])
@@ -81,6 +83,8 @@ def main():
     print('Host'.center(host_length + 3) + '   ' + 'Load'.center(25) + '   ' + 'Ram Usage'.center(26))
 
     for host in config['hosts']:
+        if host.get('users') == None:
+            host['users'] = ['root']
         for user in host['users']:
             try:
                 thread = task_thread(host['host'], user, keys, host_length)
