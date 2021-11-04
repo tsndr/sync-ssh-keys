@@ -5,14 +5,13 @@ import threading
 import yaml
 
 class task_thread(threading.Thread):
-   def __init__(self, host, user, keys, host_length):
+   def __init__(self, host, user, host_length):
       threading.Thread.__init__(self)
       self.host = host
       self.user = user
-      self.keys = keys
       self.host_length = host_length
    def run(self):
-      update_keys(self.host, self.user, self.keys, self.host_length)
+      load_metrics(self.host, self.user, self.host_length)
 
 def read_config():
     with open('config.yaml', 'r') as stream:
@@ -45,7 +44,7 @@ def parse_top_string(data):
 
     return load, cpu_percent, ram_total, ram_free
 
-def update_keys(host, user, keys, host_length):
+def load_metrics(host, user, host_length):
     try:
         client = paramiko.SSHClient()
         client.set_missing_host_key_policy(paramiko.MissingHostKeyPolicy())
@@ -70,27 +69,20 @@ def main():
 
     host_length = 0
     for host in config['hosts']:
-        if host.get('users') == None:
-            host['users'] = ['root']
-        for user in host['users']:
+        for user in host['users'].keys():
             if len(user) + len(host['host']) > host_length:
                 host_length = len(user) + len(host['host'])
-
-    keys = []
-    for key in config['keys']:
-        keys.append(key['key'])
 
     print('Host'.center(host_length + 3) + '   ' + 'Load'.center(25) + '   ' + 'Ram Usage'.center(26))
 
     for host in config['hosts']:
-        if host.get('users') == None:
-            host['users'] = ['root']
-        for user in host['users']:
-            try:
-                thread = task_thread(host['host'], user, keys, host_length)
-                thread.start()
-            except:
-                print('❌ ' + user + '@' + host['host'])
+        if 'root' not in host['users'].keys():
+            continue
+        try:
+            thread = task_thread(host['host'], 'root', host_length)
+            thread.start()
+        except:
+            print('❌ ' + user + '@' + host['host'])
 
 if __name__ == '__main__':
     main()

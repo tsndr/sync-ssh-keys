@@ -22,29 +22,44 @@ def update_keys(host, user, keys):
         client = paramiko.SSHClient()
         client.set_missing_host_key_policy(paramiko.MissingHostKeyPolicy())
         client.connect(host, username = user, timeout = 1)
-        client.exec_command('echo "###\n# Warning this file has been generated and will be overwritten!\n###\n\n' + '\n'.join(keys) + '" > ~/.ssh/authorized_keys2')
+        client.exec_command('echo "###\n# Warning this file has been generated and will be overwritten!\n###\n' + '\n'.join(keys) + '" > ~/.ssh/authorized_keys2')
         client.close()
         print('✅ ' + user + '@' + host)
     except Exception:
         print('❌ ' + user + '@' + host)
 
+def find_by_name(name, elements):
+    found = [element for element in elements if element['name'] == name]
+    if not found:
+        return False
+    return found[0]
+
 def main():
     config = read_config()
-
-    keys = []
-
-    for key in config['keys']:
-        keys.append(key['key'])
-
     for host in config['hosts']:
-        if host.get('users') == None:
-            host['users'] = ['root']
-        for user in host['users']:
+        for user_name, user_data in host['users'].items():
+            host_keys = []
+            if 'groups' in user_data.keys():
+                for group in user_data['groups']:
+                    if group not in config['groups'].keys():
+                        print('WARNING: Key-group "' + group + '" not found!')
+                        continue
+                    for key_name in config['groups'][group]:
+                        host_keys.append(config['keys'][key_name])
+            if 'keys' in user_data.keys():
+                for key_name in user_data['keys']:
+                    if key_name not in config['keys'].keys():
+                        print('WARNING: Key "' + key_name + '" not found!')
+                        continue
+                    host_keys.append(config['keys'][key_name])
+            host_keys = list(set(host_keys)) # Filter duplicates
+            if not host_keys:
+                continue
             try:
-                thread = task_thread(host['host'], user, keys)
+                thread = task_thread(host['host'], user_name, host_keys)
                 thread.start()
             except:
-                print('❌ ' + user + '@' + host['host'])
+                print('❌ ' + user_name + '@' + host['host'])
 
 if __name__ == '__main__':
     main()
