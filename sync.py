@@ -28,12 +28,6 @@ def update_keys(host, user, keys):
     except Exception:
         print('❌ ' + user + '@' + host)
 
-def find_by_name(name, elements):
-    found = [element for element in elements if element['name'] == name]
-    if not found:
-        return False
-    return found[0]
-
 def main():
     config = read_config()
     for host in config['hosts']:
