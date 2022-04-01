@@ -5,23 +5,24 @@ import threading
 import yaml
 
 class task_thread(threading.Thread):
-   def __init__(self, host, user, keys):
-      threading.Thread.__init__(self)
-      self.host = host
-      self.user = user
-      self.keys = keys
-   def run(self):
-      update_keys(self.host, self.user, self.keys)
+    def __init__(self, host, port, user, keys):
+        threading.Thread.__init__(self)
+        self.host = host
+        self.port = port
+        self.user = user
+        self.keys = keys
+    def run(self):
+        update_keys(self.host, self.port, self.user, self.keys)
 
 def read_config():
     with open('config.yaml', 'r') as stream:
         return yaml.safe_load(stream)
-
-def update_keys(host, user, keys):
+ 
+def update_keys(host, port, user, keys):
     try:
         client = paramiko.SSHClient()
         client.set_missing_host_key_policy(paramiko.MissingHostKeyPolicy())
-        client.connect(host, username = user, timeout = 1)
+        client.connect(host, username = user, port = port, timeout = 1)
         client.exec_command('echo "###\n# Warning this file has been generated and will be overwritten!\n###\n' + '\n'.join(keys) + '" > ~/.ssh/authorized_keys2')
         client.close()
         print('✅ ' + user + '@' + host)
@@ -49,8 +50,10 @@ def main():
             host_keys = list(set(host_keys)) # Filter duplicates
             if not host_keys:
                 continue
+            if not 'port' in host:
+                host['port'] = 22
             try:
-                thread = task_thread(host['host'], user_name, host_keys)
+                thread = task_thread(host['host'], host['port'], user_name, host_keys)
                 thread.start()
             except:
                 print('❌ ' + user_name + '@' + host['host'])
