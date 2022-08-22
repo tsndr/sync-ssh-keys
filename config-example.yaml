@@ -1,0 +1,26 @@
+keys:
+  john-doe: ssh-rsa XXXXXXXXX
+  jane-doe: ssh-rsa YYYYYYYYY
+
+groups:
+  admin:
+    - john-doe
+  marketing:
+    - jane-doe
+
+hosts:
+  - host: google.com
+    users:
+      root:
+        groups:
+          - admin
+      other-ssh-user:
+        groups:
+          - marketing
+        keys:
+          - john-doe
+  - host: amazon.com
+    users:
+      root:
+        groups:
+          - admin
