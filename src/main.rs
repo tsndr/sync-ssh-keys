@@ -33,7 +33,7 @@ fn generate_authorized_keys(host_keys: Vec<String>) -> String {
 
 fn main() {
     let ssh_dir: PathBuf = dirs::home_dir().unwrap().join(".ssh");
-    let private_key: PathBuf = ssh_dir.join("id_ed25519_old");
+    let private_key: PathBuf = ssh_dir.join("id_ed25519");
     let passphrase: Option<&str> = None;
     let config = config::read();
 
