@@ -81,7 +81,7 @@ fn main() {
 
             let content = &generate_authorized_keys(host_keys);
 
-            // TODO: Make async! TOKIO!!!
+            // TODO: Multithreadding
             match upload_file(&host.host, port, user_name, &private_key.as_path(), passphrase, content) {
                 Ok(_) => println!("✅ {}@{}", user_name, host.host),
                 Err(_) => println!("❌ {}@{}", user_name, host.host)
