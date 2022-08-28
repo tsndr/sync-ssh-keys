@@ -24,11 +24,11 @@ fn upload_file(host: &str, port: u16, username: &str, private_key: &Path, passph
     remote_file.close()?;
     remote_file.wait_close()?;
 
-    return Ok(());
+    Ok(())
 }
 
 fn generate_authorized_keys(host_keys: Vec<String>) -> String {
-    return format!("###\n# Warning this file has been generated and will be overwritten!\n###\n\n{}\n", host_keys.join("\n"));
+    format!("###\n# Warning this file has been generated and will be overwritten!\n###\n\n{}\n", host_keys.join("\n"))
 }
 
 fn main() {
