@@ -1,30 +1,61 @@
 mod config;
 
-use std::{net::{TcpStream, ToSocketAddrs, SocketAddr}, path::{Path, PathBuf}, io::Write, time::Duration};
+use std::io::Write;
+use std::net::{TcpStream, SocketAddr, ToSocketAddrs};
+use std::path::{PathBuf, Path};
+use std::sync::{Arc, Mutex};
+use std::thread;
+use std::time::Duration;
+
 use ssh2::Session;
 
-fn upload_file(host: &str, port: u16, username: &str, private_key: &Path, passphrase: Option<&str>, content: &str) -> Result<(), Box<dyn std::error::Error>> {
-    let addr: SocketAddr = format!("{}:{}", host, port).to_socket_addrs().unwrap().nth(0).expect(format!("Invalid host/port in `{}:{}`", host, port).as_str());
-    let tcp: TcpStream = TcpStream::connect_timeout(&addr, Duration::from_secs(1))?;
-    let mut sess: Session = Session::new()?;
+#[derive(Clone)]
+struct Host {
+    host: Arc<Mutex<String>>,
+    port: u16,
+    username: Arc<Mutex<String>>,
+    content: Arc<Mutex<String>>
+}
+
+fn upload_config(h: &Host) -> Result<String, String> {
+    let host = h.host.lock().unwrap().to_owned();
+    let port = h.port;
+    let username = h.username.lock().unwrap().to_owned();
+    let private_key = PathBuf::from("/Users/toby/.ssh/id_ed25519");
+    let content = h.content.lock().unwrap();
+    let connection_string = format!("{}@{}", username, host);
+
+    let addr: SocketAddr = format!("{}:{}", host, port)
+        .to_socket_addrs()
+        .unwrap().nth(0)
+        .expect(format!("Invalid host/port in `{}:{}`", host, port).as_str());
+    let tcp: TcpStream = match TcpStream::connect_timeout(&addr, Duration::from_secs(1)) {
+        Ok(s) => s,
+        Err(_) => return Err(connection_string)
+    };
+    let mut sess = Session::new().unwrap();
 
     sess.set_tcp_stream(tcp);
-    sess.handshake()?;
+    sess.handshake().unwrap();
 
-    let public_key: PathBuf = private_key.with_extension("pub");
+    sess.userauth_pubkey_file(&username, None, &private_key, None).unwrap();
 
-    sess.userauth_pubkey_file(&username, Some(&public_key), &private_key, passphrase)?;
+    let mut remote_file = match sess.scp_send(Path::new(".ssh").join("authorized_keys2").as_path(), 0o644, content.len() as u64, None) {
+        Ok(rf) => rf,
+        Err(_) => return Err(connection_string)
+    };
 
-    let mut remote_file = sess.scp_send(Path::new(".ssh").join("authorized_keys2").as_path(), 0o644, content.len() as u64, None)?;
+    match remote_file.write(content.as_bytes()) {
+        Ok(rf) => rf,
+        Err(_) => return Err(connection_string)
+    };
 
-    remote_file.write(content.as_bytes())?;
+    remote_file.send_eof().unwrap();
+    remote_file.wait_eof().unwrap();
+    remote_file.close().unwrap();
+    remote_file.wait_close().unwrap();
 
-    remote_file.send_eof()?;
-    remote_file.wait_eof()?;
-    remote_file.close()?;
-    remote_file.wait_close()?;
-
-    Ok(())
+    Ok(connection_string)
 }
 
 fn generate_authorized_keys(host_keys: Vec<String>) -> String {
@@ -32,9 +63,7 @@ fn generate_authorized_keys(host_keys: Vec<String>) -> String {
 }
 
 fn main() {
-    let ssh_dir: PathBuf = dirs::home_dir().unwrap().join(".ssh");
-    let private_key: PathBuf = ssh_dir.join("id_ed25519");
-    let passphrase: Option<&str> = None;
+    let mut hosts: Vec<Host> = vec![];
     let config = config::read();
 
     for host in &config.hosts {
@@ -73,19 +102,29 @@ fn main() {
                 continue;
             }
 
-            let mut port: u16 = 22;
+            let content = generate_authorized_keys(host_keys);
 
-            if host.port.is_some() {
-                port = host.port.unwrap();
-            }
-
-            let content = &generate_authorized_keys(host_keys);
-
-            // TODO: Multithreadding
-            match upload_file(&host.host, port, user_name, &private_key.as_path(), passphrase, content) {
-                Ok(_) => println!("✅ {}@{}", user_name, host.host),
-                Err(_) => println!("❌ {}@{}", user_name, host.host)
-            }
+            hosts.push(Host {
+                host: Arc::new(Mutex::new(host.host.to_string())),
+                port: host.port.unwrap_or(22),
+                username: Arc::new(Mutex::new(user_name.to_string())),
+                content: Arc::new(Mutex::new(content))
+            });
         }
+    }
+
+    let mut handles = vec![];
+
+    for host in hosts {
+        handles.push(thread::spawn(move || {
+            match upload_config(&host) {
+                Ok(s) => println!("✅ {}", s),
+                Err(s) => println!("❌ {}", s)
+            }
+        }));
+    }
+
+    for handler in handles {
+        handler.join().unwrap();
     }
 }
