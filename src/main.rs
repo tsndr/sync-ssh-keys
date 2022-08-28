@@ -5,7 +5,7 @@ use ssh2::Session;
 
 fn upload_file(host: &str, port: u16, username: &str, private_key: &Path, passphrase: Option<&str>, content: &str) -> Result<(), Box<dyn std::error::Error>> {
     let addr: SocketAddr = format!("{}:{}", host, port).to_socket_addrs().unwrap().nth(0).expect(format!("Invalid host/port in `{}:{}`", host, port).as_str());
-    let tcp: TcpStream = TcpStream::connect_timeout(&addr, Duration::from_secs(3))?;
+    let tcp: TcpStream = TcpStream::connect_timeout(&addr, Duration::from_secs(1))?;
     let mut sess: Session = Session::new()?;
 
     sess.set_tcp_stream(tcp);
