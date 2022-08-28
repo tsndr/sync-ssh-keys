@@ -1,13 +1,13 @@
 mod config;
 
-use std::{net::TcpStream, path::{Path, PathBuf}, io::Write};
+use std::{net::{TcpStream, ToSocketAddrs, SocketAddr}, path::{Path, PathBuf}, io::Write, time::Duration};
 use ssh2::Session;
 
 fn upload_file(host: &str, port: u16, username: &str, private_key: &Path, passphrase: Option<&str>, content: &str) -> Result<(), Box<dyn std::error::Error>> {
-    let tcp: TcpStream = TcpStream::connect(format!("{}:{}", host, port))?;
+    let addr: SocketAddr = format!("{}:{}", host, port).to_socket_addrs().unwrap().nth(0).expect(format!("Invalid host/port in `{}:{}`", host, port).as_str());
+    let tcp: TcpStream = TcpStream::connect_timeout(&addr, Duration::from_secs(3))?;
     let mut sess: Session = Session::new()?;
 
-    sess.set_timeout(3000);
     sess.set_tcp_stream(tcp);
     sess.handshake()?;
 
