@@ -22,8 +22,12 @@ pub struct Host {
     >
 }
 
-pub fn read() -> Config {
-    let yaml = fs::read_to_string(Path::new("config.yaml")).unwrap();
-    let config: Config = serde_yaml::from_str(&yaml).unwrap();
-    return config;
+pub fn read() -> Result<Config, ()> {
+    let yaml = fs::read_to_string(Path::new("config.yaml")).unwrap_or("".to_string());
+    let config: Config = match serde_yaml::from_str(&yaml) {
+        Ok(c) => c,
+        Err(_) => return Err(())
+    };
+
+    Ok(config)
 }

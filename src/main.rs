@@ -64,7 +64,10 @@ fn generate_authorized_keys(host_keys: Vec<String>) -> String {
 
 fn main() {
     let mut hosts: Vec<Host> = vec![];
-    let config = config::read();
+    let config = match config::read() {
+        Ok(c) => c,
+        Err(_) => return println!("Error: `config.yaml` not found!")
+    };
 
     for host in &config.hosts {
         for (user_name, user_data) in &host.users {
