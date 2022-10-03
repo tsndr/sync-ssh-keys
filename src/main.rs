@@ -76,7 +76,7 @@ fn main() {
             if user_data.contains_key("groups") {
                 for group in user_data["groups"].as_slice() {
                     if !config.groups.contains_key(group) {
-                        println!("WARNING: Key-group \"{}\" not fount!", group);
+                        println!("WARNING: Key-group \"{}\" not found!", group);
                         continue;
                     }
                     for key_name in config.groups[group].as_slice() {
