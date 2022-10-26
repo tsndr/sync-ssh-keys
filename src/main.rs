@@ -25,14 +25,16 @@ fn upload_config(h: &Host) -> Result<String, String> {
     let content = h.content.lock().unwrap();
     let connection_string = format!("{}@{}", username, host);
 
-    let addr: SocketAddr = format!("{}:{}", host, port)
-        .to_socket_addrs()
-        .unwrap().nth(0)
-        .expect(format!("Invalid host/port in `{}:{}`", host, port).as_str());
-    let tcp: TcpStream = match TcpStream::connect_timeout(&addr, Duration::from_secs(1)) {
+    let addr: SocketAddr = match format!("{}:{}", host, port).to_socket_addrs() {
+        Ok(mut addrs) => addrs.nth(0).expect(format!("Invalid host/port in `{}:{}`", host, port).as_str()),
+        _ => return Err(connection_string)
+    };
+
+    let tcp: TcpStream = match TcpStream::connect_timeout(&addr, Duration::from_secs(3)) {
         Ok(s) => s,
         Err(_) => return Err(connection_string)
     };
+
     let mut sess = Session::new().unwrap();
 
     sess.set_tcp_stream(tcp);
