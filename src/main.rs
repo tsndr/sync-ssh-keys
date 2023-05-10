@@ -130,6 +130,6 @@ fn main() {
     }
 
     for handler in handles {
-        handler.join().unwrap();
+        handler.join().unwrap_or(());
     }
 }

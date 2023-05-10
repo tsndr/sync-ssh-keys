@@ -1,4 +1,4 @@
-use std::{collections::HashMap, fs, path::Path};
+use std::{collections::HashMap, fs};
 
 use serde::{Serialize, Deserialize};
 
@@ -23,7 +23,8 @@ pub struct Host {
 }
 
 pub fn read() -> Result<Config, ()> {
-    let yaml = fs::read_to_string(Path::new("config.yaml")).unwrap_or("".to_string());
+    let path = format!("{}/config.yaml", env!("PWD"));
+    let yaml = fs::read_to_string(path).unwrap_or("".to_string());
     let config: Config = match serde_yaml::from_str(&yaml) {
         Ok(c) => c,
         Err(_) => return Err(())
