@@ -17,7 +17,7 @@ class task_thread(threading.Thread):
 def read_config():
     with open('config.yaml', 'r') as stream:
         return yaml.safe_load(stream)
- 
+
 def update_keys(host, port, user, keys):
     try:
         client = paramiko.SSHClient()
