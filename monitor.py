@@ -5,20 +5,6 @@ import paramiko
 import threading
 import yaml
 
-class task_thread(threading.Thread):
-    def __init__(self, host, port, user, keys):
-        threading.Thread.__init__(self)
-        self.host = host
-        self.port = port
-        self.user = user
-        self.keys = keys
-    def run(self):
-        load_metrics(self.host, self.port, self.user, self.keys)
-
-def read_config():
-    with open('config.yaml', 'r') as stream:
-        return yaml.safe_load(stream)
-
 def string_to_float(data):
     return float(data.strip().split(' ', 2)[0].strip())
 
@@ -46,38 +32,74 @@ def parse_top_string(data):
 
     return load, cpu_percent, ram_total, ram_free
 
-def load_metrics(host, port, user, host_length):
-    try:
-        client = paramiko.SSHClient()
-        client.set_missing_host_key_policy(paramiko.MissingHostKeyPolicy())
-        client.connect(host, port = port, username = user, timeout = 1)
+class Host(threading.Thread):
+    def __init__(self, host, port, host_length, idx):
+        threading.Thread.__init__(self)
+        self.host = host
+        self.port = port
+        self.host_length = host_length
+        self.idx = idx
+        self.status = 'none'
+        self.row = ''
 
-        stdin, stdout, stderr = client.exec_command('top -bn1 | grep "^top\\|^%Cpu\\|^.iB Mem"')
+    def render_status(self):
+        if self.status == 'none':
+            return '[ .. ] '
+        elif self.status == 'ok':
+            return '[ \033[92mok\033[0m ] '
+        elif self.status == 'fail':
+            return '[\033[91mfail\033[0m] '
+
+    def render_top(self):
+        if self.status != 'ok':
+            return ''
+
+        stdin, stdout, stderr = self.client.exec_command('top -bn1 | grep "^top\\|^%Cpu\\|^.iB Mem"')
         stdin.close()
 
         data = stdout.read().decode('utf-8').strip()
-        client.close()
+        self.client.close()
 
         load, cpu_percent, ram_total, ram_free = parse_top_string(data)
         ram_used = ram_total - ram_free
 
-        print(('✅ ' + host).ljust(host_length + 5) + load + ' (' + '{:3.1f}'.format(cpu_percent).rjust(5) + '%)   ' + '{:3.1f}'.format(ram_used).rjust(5) + ' / ' + '{:3.1f}'.format(ram_total).rjust(5) + ' GiB (' + '{:3.1f}'.format(ram_used / ram_total * 100).rjust(5) + '%)')
+        return load + ' (' + '{:3.1f}'.format(cpu_percent).rjust(5) + '%)   ' + '{:3.1f}'.format(ram_used).rjust(5) + ' / ' + '{:3.1f}'.format(ram_total).rjust(5) + ' GiB (' + '{:3.1f}'.format(ram_used / ram_total * 100).rjust(5) + '%)'
 
-    except:
-       time.sleep(1)
-       print('❌ ' + host)
+    def render_row(self):
+        self.row = self.render_status() + self.host.ljust(self.host_length + 3) + self.render_top()
+
+    def run(self):
+        try:
+            self.status = 'none'
+            self.render_row()
+            self.client = paramiko.SSHClient()
+            self.client.set_missing_host_key_policy(paramiko.MissingHostKeyPolicy())
+            self.client.connect(self.host, port = self.port, username = 'root', timeout = 1)
+            self.status = 'ok'
+        except Exception as e:
+            #print(e)
+            self.status = 'fail'
+        self.render_row()
+
+def read_config():
+    with open('config.yaml', 'r') as stream:
+        return yaml.safe_load(stream)
 
 def main():
     config = read_config()
+    hosts = []
 
     host_length = 0
     for host in config['hosts']:
         if len(host['host']) > host_length:
             host_length = len(host['host'])
 
-    print('Host'.center(host_length + 3) + '   ' + 'Load'.center(25) + '   ' + 'Ram Usage'.center(26))
+    print('Host'.center(7 + host_length + 3) + 'Load'.center(25) + '   ' + 'Ram Usage'.center(26))
 
-    for host in config['hosts']:
+    config_hosts = config['hosts']
+    config_hosts.sort(key=lambda x: x['host'])
+
+    for i, host in enumerate(config_hosts):
         for user_name, user_data in host['users'].items():
             if user_name != 'root':
                 continue
@@ -85,14 +107,12 @@ def main():
             if 'groups' in user_data.keys():
                 for group in user_data['groups']:
                     if group not in config['groups'].keys():
-                        print('WARNING: Key-group "' + group + '" not found!')
                         continue
                     for key_name in config['groups'][group]:
                         host_keys.append(config['keys'][key_name])
             if 'keys' in user_data.keys():
                 for key_name in user_data['keys']:
                     if key_name not in config['keys'].keys():
-                        print('WARNING: Key "' + key_name + '" not found!')
                         continue
                     host_keys.append(config['keys'][key_name])
             host_keys = list(set(host_keys)) # Filter duplicates
@@ -100,12 +120,37 @@ def main():
                 continue
             if not 'port' in host:
                 host['port'] = 22
-            try:
-                thread = task_thread(host['host'], host['port'], user_name, host_length)
-                thread.start()
-            except:
-                time.sleep(1)
-                print('❌ ' + host['host'])
+            hosts.append(Host(host['host'], host['port'] or 22, host_length, i))
+
+    for host in hosts:
+        host.start()
+
+    end = False
+    first = True
+
+    while True:
+        screen = []
+        for host in hosts:
+            screen.append(host.row)
+
+        if first:
+            first = False
+        else:
+            print('\033[' + str(len(screen)) + 'F', end = '')
+
+        print('\n'.join(screen))
+
+        if end:
+            break
+
+        states = []
+        for host in hosts:
+            states.append(not host.is_alive())
+
+        if all(states):
+            end = True
+
+        time.sleep(0.1)
 
 if __name__ == '__main__':
     main()
