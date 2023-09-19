@@ -72,9 +72,8 @@ def main():
 
     host_length = 0
     for host in config['hosts']:
-        for user in host['users'].keys():
-            if len(user) + len(host['host']) > host_length:
-                host_length = len(host['host'])
+        if len(host['host']) > host_length:
+            host_length = len(host['host'])
 
     print('Host'.center(host_length + 3) + '   ' + 'Load'.center(25) + '   ' + 'Ram Usage'.center(26))
 
