@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 
+import time
 import paramiko
 import threading
 import yaml
@@ -27,6 +28,7 @@ def update_keys(host, port, user, keys):
         client.close()
         print('✅ ' + user + '@' + host)
     except Exception:
+        time.sleep(1)
         print('❌ ' + user + '@' + host)
 
 def main():
@@ -56,6 +58,7 @@ def main():
                 thread = task_thread(host['host'], host['port'], user_name, host_keys)
                 thread.start()
             except:
+                time.sleep(1)
                 print('❌ ' + user_name + '@' + host['host'])
 
 if __name__ == '__main__':
