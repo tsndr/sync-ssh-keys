@@ -143,11 +143,12 @@ def main():
         if end:
             break
 
+        states = []
         for host in hosts:
-            if host.is_alive():
-                break
+            states.append(not host.is_alive())
+
+        if all(states):
             end = True
-            break
 
         time.sleep(0.1)
 
