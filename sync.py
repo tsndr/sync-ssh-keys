@@ -93,12 +93,14 @@ def main():
             if 'groups' in user_data.keys():
                 for group in user_data['groups']:
                     if group not in config['groups'].keys():
+                        print('WARNING: Key-group "' + group + '" not found!')
                         continue
                     for key_name in config['groups'][group]:
                         host_keys.append(config['keys'][key_name])
             if 'keys' in user_data.keys():
                 for key_name in user_data['keys']:
                     if key_name not in config['keys'].keys():
+                        print('WARNING: Key "' + key_name + '" not found!')
                         continue
                     host_keys.append(config['keys'][key_name])
             host_keys = list(set(host_keys)) # Filter duplicates
