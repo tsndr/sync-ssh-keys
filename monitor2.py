@@ -5,8 +5,6 @@ import paramiko
 import threading
 import yaml
 
-out_buf = []
-
 def string_to_float(data):
     return float(data.strip().split(' ', 2)[0].strip())
 
@@ -42,7 +40,7 @@ class Host(threading.Thread):
         self.host_length = host_length
         self.idx = idx
         self.status = 'none'
-        self.done = False
+        self.row = ''
 
     def render_status(self):
         if self.status == 'none':
@@ -68,22 +66,20 @@ class Host(threading.Thread):
         return load + ' (' + '{:3.1f}'.format(cpu_percent).rjust(5) + '%)   ' + '{:3.1f}'.format(ram_used).rjust(5) + ' / ' + '{:3.1f}'.format(ram_total).rjust(5) + ' GiB (' + '{:3.1f}'.format(ram_used / ram_total * 100).rjust(5) + '%)'
 
     def render_row(self):
-        return self.render_status() + self.host.ljust(self.host_length + 3) + self.render_top()
+        self.row = self.render_status() + self.host.ljust(self.host_length + 3) + self.render_top()
 
     def run(self):
         try:
             self.status = 'none'
-            out_buf[self.idx] = self.render_row()
+            self.render_row()
             self.client = paramiko.SSHClient()
             self.client.set_missing_host_key_policy(paramiko.MissingHostKeyPolicy())
             self.client.connect(self.host, port = self.port, username = 'root', timeout = 1)
             self.status = 'ok'
-            out_buf[self.idx] = self.render_row()
         except Exception as e:
             #print(e)
             self.status = 'fail'
-            out_buf[self.idx] = self.render_row()
-        self.done = True
+        self.render_row()
 
 def read_config():
     with open('config.yaml', 'r') as stream:
@@ -124,7 +120,6 @@ def main():
                 continue
             if not 'port' in host:
                 host['port'] = 22
-            out_buf.append('')
             hosts.append(Host(host['host'], host['port'] or 22, host_length, i))
 
     for host in hosts:
@@ -135,13 +130,8 @@ def main():
 
     while True:
         screen = []
-        for row in out_buf:
-            screen.append(row)
-
         for host in hosts:
-            if not host.done:
-              break
-            end = True
+            screen.append(host.row)
 
         if first:
             first = False
@@ -151,6 +141,12 @@ def main():
         print('\n'.join(screen))
 
         if end:
+            break
+
+        for host in hosts:
+            if host.is_alive():
+                break
+            end = True
             break
 
         time.sleep(0.1)
