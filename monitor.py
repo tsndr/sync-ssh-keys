@@ -103,21 +103,6 @@ def main():
         for user_name, user_data in host['users'].items():
             if user_name != 'root':
                 continue
-            host_keys = []
-            if 'groups' in user_data.keys():
-                for group in user_data['groups']:
-                    if group not in config['groups'].keys():
-                        continue
-                    for key_name in config['groups'][group]:
-                        host_keys.append(config['keys'][key_name])
-            if 'keys' in user_data.keys():
-                for key_name in user_data['keys']:
-                    if key_name not in config['keys'].keys():
-                        continue
-                    host_keys.append(config['keys'][key_name])
-            host_keys = list(set(host_keys)) # Filter duplicates
-            if not host_keys:
-                continue
             if not 'port' in host:
                 host['port'] = 22
             hosts.append(Host(host['host'], host['port'] or 22, host_length, i))
