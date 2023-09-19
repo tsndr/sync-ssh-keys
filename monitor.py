@@ -1,17 +1,19 @@
 #!/usr/bin/env python3
 
+import time
 import paramiko
 import threading
 import yaml
 
 class task_thread(threading.Thread):
-   def __init__(self, host, user, host_length):
-      threading.Thread.__init__(self)
-      self.host = host
-      self.user = user
-      self.host_length = host_length
-   def run(self):
-      load_metrics(self.host, self.user, self.host_length)
+    def __init__(self, host, port, user, keys):
+        threading.Thread.__init__(self)
+        self.host = host
+        self.port = port
+        self.user = user
+        self.keys = keys
+    def run(self):
+        load_metrics(self.host, self.port, self.user, self.keys)
 
 def read_config():
     with open('config.yaml', 'r') as stream:
@@ -44,11 +46,11 @@ def parse_top_string(data):
 
     return load, cpu_percent, ram_total, ram_free
 
-def load_metrics(host, user, host_length):
+def load_metrics(host, port, user, host_length):
     try:
         client = paramiko.SSHClient()
         client.set_missing_host_key_policy(paramiko.MissingHostKeyPolicy())
-        client.connect(host, username = user, timeout = 1)
+        client.connect(host, port = port, username = user, timeout = 1)
 
         stdin, stdout, stderr = client.exec_command('top -bn1 | grep "^top\\|^%Cpu\\|^.iB Mem"')
         stdin.close()
@@ -58,11 +60,12 @@ def load_metrics(host, user, host_length):
 
         load, cpu_percent, ram_total, ram_free = parse_top_string(data)
         ram_used = ram_total - ram_free
-        
-        print(('✅ ' + user + '@' + host).ljust(host_length + 5) + load + ' (' + '{:3.1f}'.format(cpu_percent).rjust(5) + '%)   ' + '{:3.1f}'.format(ram_used).rjust(5) + ' / ' + '{:3.1f}'.format(ram_total).rjust(5) + ' GiB (' + '{:3.1f}'.format(ram_used / ram_total * 100).rjust(5) + '%)')
+
+        print(('✅ ' + host).ljust(host_length + 5) + load + ' (' + '{:3.1f}'.format(cpu_percent).rjust(5) + '%)   ' + '{:3.1f}'.format(ram_used).rjust(5) + ' / ' + '{:3.1f}'.format(ram_total).rjust(5) + ' GiB (' + '{:3.1f}'.format(ram_used / ram_total * 100).rjust(5) + '%)')
 
     except:
-        print('❌ ' + user + '@' + host)
+       time.sleep(1)
+       print('❌ ' + host)
 
 def main():
     config = read_config()
@@ -71,18 +74,39 @@ def main():
     for host in config['hosts']:
         for user in host['users'].keys():
             if len(user) + len(host['host']) > host_length:
-                host_length = len(user) + len(host['host'])
+                host_length = len(host['host'])
 
     print('Host'.center(host_length + 3) + '   ' + 'Load'.center(25) + '   ' + 'Ram Usage'.center(26))
 
     for host in config['hosts']:
-        if 'root' not in host['users'].keys():
-            continue
-        try:
-            thread = task_thread(host['host'], 'root', host_length)
-            thread.start()
-        except:
-            print('❌ ' + user + '@' + host['host'])
+        for user_name, user_data in host['users'].items():
+            if user_name != 'root':
+                continue
+            host_keys = []
+            if 'groups' in user_data.keys():
+                for group in user_data['groups']:
+                    if group not in config['groups'].keys():
+                        print('WARNING: Key-group "' + group + '" not found!')
+                        continue
+                    for key_name in config['groups'][group]:
+                        host_keys.append(config['keys'][key_name])
+            if 'keys' in user_data.keys():
+                for key_name in user_data['keys']:
+                    if key_name not in config['keys'].keys():
+                        print('WARNING: Key "' + key_name + '" not found!')
+                        continue
+                    host_keys.append(config['keys'][key_name])
+            host_keys = list(set(host_keys)) # Filter duplicates
+            if not host_keys:
+                continue
+            if not 'port' in host:
+                host['port'] = 22
+            try:
+                thread = task_thread(host['host'], host['port'], user_name, host_length)
+                thread.start()
+            except:
+                time.sleep(1)
+                print('❌ ' + host['host'])
 
 if __name__ == '__main__':
     main()
