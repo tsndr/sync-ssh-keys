@@ -26,4 +26,4 @@ Run `./sync.py` or `python3 sync.py`
 
 ### Monitor
 
-Run `./sync.py` or `python3 sync.py`
+Run `./monitor.py` or `python3 monitor.py`
