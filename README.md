@@ -19,4 +19,11 @@ Rename `config-example.yaml` to `config.yaml` and set your own data.
 
 ## Usage
 
+### Sync
+
+Run `./sync.py` or `python3 sync.py`
+
+
+## Monitor
+
 Run `./sync.py` or `python3 sync.py`
