@@ -1,6 +1,6 @@
 keys:
-  john-doe: ssh-rsa XXXXXXXXX
-  jane-doe: ssh-rsa YYYYYYYYY
+  john-doe: ssh-ed25519 XXXXXXXXX
+  jane-doe: ssh-ed25519 YYYYYYYYY
 
 groups:
   admin:
@@ -19,7 +19,9 @@ hosts:
           - marketing
         keys:
           - john-doe
+
   - host: amazon.com
+    port: 42069
     users:
       root:
         groups:
