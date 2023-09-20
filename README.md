@@ -24,6 +24,6 @@ Rename `config-example.yaml` to `config.yaml` and set your own data.
 Run `./sync.py` or `python3 sync.py`
 
 
-## Monitor
+### Monitor
 
 Run `./sync.py` or `python3 sync.py`
