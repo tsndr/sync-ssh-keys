@@ -33,14 +33,13 @@ def parse_top_string(data):
     return load, cpu_percent, ram_total, ram_free
 
 class Host(threading.Thread):
-    def __init__(self, host, port, user, keys, host_length, idx):
+    def __init__(self, host, port, user, keys, host_length):
         threading.Thread.__init__(self)
         self.host = host
         self.port = port
         self.user = user
         self.keys = keys
         self.host_length = host_length
-        self.idx = idx
         self.status = 'none'
         self.row = ''
 
@@ -108,7 +107,7 @@ def main():
                 continue
             if not 'port' in host:
                 host['port'] = 22
-            hosts.append(Host(host['host'], host['port'] or 22, user_name, host_keys, host_length, i))
+            hosts.append(Host(host['host'], host['port'] or 22, user_name, host_keys, host_length))
 
     for host in hosts:
         host.start()
