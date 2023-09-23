@@ -23,7 +23,11 @@ Rename `config-example.yaml` to `config.yaml` and set your own data.
 
 Run `./sync.py` or `python3 sync.py`
 
+![Sync](assets/sync.gif)
+
 
 ### Monitor
 
 Run `./monitor.py` or `python3 monitor.py`
+
+![Monitor](assets/monitor.gif)
