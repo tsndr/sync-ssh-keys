@@ -78,7 +78,7 @@ fn main() {
             if user_data.contains_key("groups") {
                 for group in user_data["groups"].as_slice() {
                     if !config.groups.contains_key(group) {
-                        println!("WARNING: Key-group \"{}\" not found!", group);
+                        eprintln!("\x1b[93mWARNING\x1b[0m: Key-group \"{}\" not found! Skipping...", group);
                         continue;
                     }
                     for key_name in config.groups[group].as_slice() {
@@ -92,7 +92,7 @@ fn main() {
             if user_data.contains_key("keys") {
                 for key_name in user_data["keys"].as_slice() {
                     if !config.keys.contains_key(key_name) {
-                        println!("WARNING: Key \"{}\" not found!", key_name);
+                        eprintln!("\x1b[93mWARNING\x1b[0m: Key \"{}\" not found! Skipping...", key_name);
                         continue;
                     }
                     host_keys.push(config.keys.get(key_name).unwrap().to_string())
