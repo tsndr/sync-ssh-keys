@@ -23,7 +23,7 @@ fn upload_config(h: &Host) -> Result<String, String> {
     let username = h.username.lock().unwrap().to_owned();
     let private_key = PathBuf::from("/Users/toby/.ssh/id_ed25519");
     let content = h.content.lock().unwrap();
-    let connection_string = format!("{}@{}", username, host);
+    let connection_string = format!("{}@{}:{}", username, host, port);
 
     let addr: SocketAddr = match format!("{}:{}", host, port).to_socket_addrs() {
         Ok(mut addrs) => addrs.nth(0).expect(format!("Invalid host/port in `{}:{}`", host, port).as_str()),
@@ -61,7 +61,7 @@ fn upload_config(h: &Host) -> Result<String, String> {
 }
 
 fn generate_authorized_keys(host_keys: Vec<String>) -> String {
-    format!("###\n# Warning this file has been generated and will be overwritten!\n###\n\n{}\n", host_keys.join("\n"))
+    format!("###\n# Warning this file has been generated and will be overwritten!\n###\n{}\n", host_keys.join("\n"))
 }
 
 fn main() {
