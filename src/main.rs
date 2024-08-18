@@ -40,7 +40,10 @@ fn upload_config(h: &Host) -> Result<String, String> {
     sess.set_tcp_stream(tcp);
     sess.handshake().unwrap();
 
-    sess.userauth_pubkey_file(&username, None, &private_key, None).unwrap();
+    match sess.userauth_pubkey_file(&username, None, &private_key, None) {
+        Err(_) => return Err(connection_string),
+        _ => {}
+    }
 
     let mut remote_file = match sess.scp_send(Path::new(".ssh").join("authorized_keys2").as_path(), 0o644, content.len() as u64, None) {
         Ok(rf) => rf,
