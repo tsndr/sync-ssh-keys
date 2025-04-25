@@ -30,3 +30,4 @@ __pycache__/
 
 # Project specific
 config.yaml
+.venv/
