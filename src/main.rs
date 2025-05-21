@@ -21,13 +21,13 @@ fn upload_config(h: &Host) -> Result<String, String> {
     let host = h.host.lock().unwrap().to_owned();
     let port = h.port;
     let username = h.username.lock().unwrap().to_owned();
-    let private_key = PathBuf::from("/Users/toby/.ssh/id_ed25519");
+    let private_key = PathBuf::from(format!("{}/.ssh/id_ed25519", env!("HOME")));
     let content = h.content.lock().unwrap();
     let connection_string = format!("{}@{}", username, host);
 
     let addr: SocketAddr = match format!("{}:{}", host, port).to_socket_addrs() {
         Ok(mut addrs) => addrs.nth(0).expect(format!("Invalid host/port in `{}:{}`", host, port).as_str()),
-        _ => return Err(connection_string)
+        Err(_) => return Err(connection_string)
     };
 
     let tcp: TcpStream = match TcpStream::connect_timeout(&addr, Duration::from_secs(3)) {
@@ -35,12 +35,22 @@ fn upload_config(h: &Host) -> Result<String, String> {
         Err(_) => return Err(connection_string)
     };
 
-    let mut sess = Session::new().unwrap();
+    let mut sess = match Session::new() {
+        Ok(s) => s,
+        Err(_) => return Err(connection_string)
+    };
 
     sess.set_tcp_stream(tcp);
-    sess.handshake().unwrap();
 
-    sess.userauth_pubkey_file(&username, None, &private_key, None).unwrap();
+    match sess.handshake() {
+        Ok(()) => (),
+        Err(_) => return Err(connection_string)
+    };
+
+    match sess.userauth_pubkey_file(&username, None, &private_key, None) {
+        Ok(()) => (),
+        Err(_) => return Err(connection_string)
+    };
 
     let mut remote_file = match sess.scp_send(Path::new(".ssh").join("authorized_keys2").as_path(), 0o644, content.len() as u64, None) {
         Ok(rf) => rf,
@@ -52,10 +62,25 @@ fn upload_config(h: &Host) -> Result<String, String> {
         Err(_) => return Err(connection_string)
     };
 
-    remote_file.send_eof().unwrap();
-    remote_file.wait_eof().unwrap();
-    remote_file.close().unwrap();
-    remote_file.wait_close().unwrap();
+    match remote_file.send_eof() {
+        Ok(()) => (),
+        Err(_) => return Err(connection_string)
+    };
+
+    match remote_file.wait_eof() {
+        Ok(()) => (),
+        Err(_) => return Err(connection_string)
+    };
+
+    match remote_file.close() {
+        Ok(()) => (),
+        Err(_) => return Err(connection_string)
+    };
+
+    match remote_file.wait_close() {
+        Ok(()) => (),
+        Err(_) => return Err(connection_string)
+    };
 
     Ok(connection_string)
 }
